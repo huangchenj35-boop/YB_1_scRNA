@@ -8,7 +8,32 @@ This repository covers the computational analyses used for the single-cell figur
 
 The analysis uses the public dataset **GSE138709**, including 5 intrahepatic cholangiocarcinoma tumor samples and 3 adjacent liver samples.
 
-Raw count matrices and large intermediate RDS files are not stored in this repository. To start from raw data, download the 10x Genomics `filtered_feature_bc_matrix` folders from GEO and place them under one of these paths:
+The GEO supplementary data are provided as processed UMI count matrices in `GSE138709_RAW.tar`. The archive contains eight `*_UMI.csv.gz` files:
+
+```text
+GSM4116579_ICC_18_Adjacent_UMI.csv.gz
+GSM4116580_ICC_18_Tumor_UMI.csv.gz
+GSM4116581_ICC_20_Tumor_UMI.csv.gz
+GSM4116582_ICC_23_Adjacent_UMI.csv.gz
+GSM4116583_ICC_23_Tumor_UMI.csv.gz
+GSM4116584_ICC_24_Tumor1_UMI.csv.gz
+GSM4116585_ICC_24_Tumor2_UMI.csv.gz
+GSM4116586_ICC_25_Adjacent_UMI.csv.gz
+```
+
+Raw count matrices and large intermediate RDS files are not stored in this repository. For Code Ocean, upload `GSE138709_RAW.tar` to the Data section as:
+
+```text
+/data/GSE138709_RAW.tar
+```
+
+Alternatively, upload the extracted UMI matrices as:
+
+```text
+/data/GSE138709_RAW/*_UMI.csv.gz
+```
+
+The preprocessing script can also read standard 10x Genomics `filtered_feature_bc_matrix` folders if they are provided under one of these paths:
 
 ```text
 GSE138709/
@@ -16,13 +41,22 @@ Rawcount/filtered_feature_bc_matrix/
 filtered_feature_bc_matrix/
 ```
 
-The preprocessing script searches these folders automatically. If a processed Seurat object is already available, place it here:
+If a processed Seurat object is already available, place it here:
 
 ```text
 output/scRNA1_preprocessed.rds
 ```
 
-Downstream scripts use this object when present.
+For Code Ocean, the following Data paths are also recognized by `run_codeocean.R`:
+
+```text
+/data/scRNA1_preprocessed.rds
+/data/output/scRNA1_preprocessed.rds
+/data/scRNA1_annotated.rds
+/data/output/scRNA1_annotated.rds
+```
+
+Downstream scripts use these objects when present.
 
 ## Script order
 
@@ -55,7 +89,7 @@ Some scripts generate figures directly. Others prepare intermediate Seurat, SCEN
 
 | Script | Main purpose | Related panels |
 |---|---|---|
-| `00_data_preprocessing_for_FigS1A.R` | Seurat preprocessing, QC, integration, clustering, UMAP/t-SNE | Fig. S1A |
+| `00_data_preprocessing_for_FigS1A.R` | Read GEO UMI CSV matrices or 10x folders; Seurat preprocessing, QC, integration, clustering, UMAP/t-SNE | Fig. S1A |
 | `01_Fig1A_FigS1B_cell_annotation.R` | Cell-type annotation and marker validation | Fig. 1A; Fig. S1B |
 | `02_Fig1B_Fig1D_FigS1C_sample_origin_YBX1_composition.R` | Tumor/adjacent distribution, YBX1 expression comparison, cell-type composition | Fig. 1B; Fig. 1D; Fig. S1C |
 | `03_Fig1C_Fig1F_Fig3Btop_Fig3Ctop_YBX1_feature_UMAP.R` | YBX1 expression and YBX1-related score projection | Fig. 1C; Fig. 1F; Fig. 3B top; Fig. 3C top |
@@ -129,34 +163,25 @@ SCENIC-related scripts also require the corresponding motif-ranking database fil
 
 ## Running the analysis
 
-In R, run the scripts in order with `source()`:
+For Code Ocean review mode, use the stable runner:
 
-```r
-source("00_data_preprocessing_for_FigS1A.R")
-source("01_Fig1A_FigS1B_cell_annotation.R")
-source("02_Fig1B_Fig1D_FigS1C_sample_origin_YBX1_composition.R")
-source("03_Fig1C_Fig1F_Fig3Btop_Fig3Ctop_YBX1_feature_UMAP.R")
-source("04_Fig1E_FigS2_inferCNV_CopyKAT.R")
-source("05_Fig1G_Fig3Bbottom_Fig3Cbottom_Fig3D_Fig3E_boxdensity.R")
-source("06_Fig1H_Fig1I_Fig1J_Fig1K_Monocle3_trajectory.R")
-source("07_data_drug_sensitivity_prediction_for_Fig3D_Fig3E_FigS3C.R")
-source("08_data_SCENIC_regulon_inference_for_Fig3_FigS3.R")
-source("09_data_SCENIC_AUC_integration_for_Fig3_FigS3.R")
-source("10_Fig3A_SCENIC_CopyKAT_regulon_heatmap.R")
-source("11_Fig3Ctop_GSVA_YBX1_targets_ssGSEA.R")
-source("12_Fig3F_FigS3E_to_FigS3H_ABC_transporter.R")
-source("13_FigS1D_FigS1E_FigS1F_cholangiocyte_subclustering.R")
-source("14_FigS3A_SCENIC_regulon_volcano.R")
-source("15_FigS3B_SCENIC_cisplatin_regulon_heatmap.R")
-source("16_FigS3C_cisplatin_IC50_UMAP_density.R")
-source("17_FigS3D_YBX1_regulon_density_UMAP.R")
+```bash
+Rscript run_codeocean.R
 ```
 
-For Code Ocean, the same commands can be placed in `run_all.R` and executed with:
+This runner detects `/data/GSE138709_RAW.tar`, extracts the UMI CSV matrices, runs available core scripts, skips heavy optional steps when dependencies are unavailable, and writes:
+
+```text
+output/codeocean_run_log.csv
+```
+
+For a strict full workflow in a fully prepared local environment, run:
 
 ```bash
 Rscript run_all.R
 ```
+
+The individual scripts can also be run in R with `source()` in numerical order.
 
 ## Output
 
