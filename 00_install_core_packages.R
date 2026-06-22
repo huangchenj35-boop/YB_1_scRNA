@@ -59,10 +59,6 @@ install_one <- function(pkg) {
     error = function(e) {
       message("Failed to install ", pkg, ": ", conditionMessage(e))
       FALSE
-    },
-    warning = function(w) {
-      message("Warning while installing ", pkg, ": ", conditionMessage(w))
-      invokeRestart("muffleWarning")
     }
   )
 
