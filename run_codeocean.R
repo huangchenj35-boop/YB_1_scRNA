@@ -1,8 +1,9 @@
 ## ============================================================
 ## Code Ocean stable runner for YB_1_scRNA
 ## ============================================================
-## Scripts are named according to their running order.
 ## Default mode skips heavy optional steps unless RUN_HEAVY_STEPS=true.
+## Execution follows data dependency order. Output formats are defined inside
+## each analysis script and are not modified by this runner.
 ## ============================================================
 
 Sys.setenv(LANGUAGE = "en")
@@ -171,18 +172,18 @@ steps <- list(
   list(script = "03_sample_origin_YBX1_composition_Fig1B_Fig1D_FigS1C.R", group = "core", heavy = FALSE, packages = c("Seurat", "dplyr", "tidyr", "ggplot2", "scales", "colorspace", "aplot")),
   list(script = "04_YBX1_feature_UMAP_Fig1C_Fig1F_Fig3B_Fig3C.R", group = "core", heavy = FALSE, packages = c("Seurat", "dplyr", "ggplot2")),
   list(script = "05_CNV_inferCNV_CopyKAT_Fig1E_FigS2.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "infercnv", "copykat")),
-  list(script = "06_YBX1_box_density_drug_response_Fig1G_Fig3B_to_Fig3E.R", group = "core_or_intermediate", heavy = FALSE, packages = c("Seurat", "dplyr", "ggplot2", "ggpubr")),
-  list(script = "07_Monocle3_trajectory_Fig1H_to_Fig1K.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "monocle3")),
-  list(script = "08_drug_sensitivity_prediction_Fig3D_Fig3E_FigS3C.R", group = "optional", heavy = FALSE, packages = c("Seurat", "dplyr")),
+  list(script = "07_Monocle3_trajectory_Fig1H_to_Fig1K.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "monocle3", "Matrix", "ggplot2", "dplyr", "tibble", "tidyr")),
+  list(script = "08_drug_sensitivity_prediction_Fig3D_Fig3E_FigS3C.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "oncoPredict", "dplyr", "ggplot2")),
   list(script = "09_SCENIC_regulon_inference_Fig3_FigS3.R", group = "heavy", heavy = TRUE, packages = c("SCENIC", "AUCell", "RcisTarget", "GENIE3")),
   list(script = "10_SCENIC_AUC_integration_Fig3_FigS3.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "AUCell")),
+  list(script = "12_GSVA_YBX1_targets_ssGSEA_Fig3C.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "GSVA")),
+  list(script = "06_YBX1_box_density_drug_response_Fig1G_Fig3B_to_Fig3E.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "dplyr", "ggplot2", "ggpubr", "patchwork", "scales")),
   list(script = "11_SCENIC_CopyKAT_regulon_heatmap_Fig3A.R", group = "heavy", heavy = TRUE, packages = c("ComplexHeatmap", "dplyr")),
-  list(script = "12_GSVA_YBX1_targets_ssGSEA_Fig3C.R", group = "optional", heavy = FALSE, packages = c("Seurat", "GSVA")),
   list(script = "13_ABC_transporter_Fig3F_FigS3E_to_FigS3H.R", group = "core_or_intermediate", heavy = FALSE, packages = c("Seurat", "dplyr", "ggplot2")),
   list(script = "14_cholangiocyte_subclustering_FigS1D_to_FigS1F.R", group = "core_or_intermediate", heavy = FALSE, packages = c("Seurat", "dplyr", "ggplot2")),
   list(script = "15_SCENIC_regulon_volcano_FigS3A.R", group = "heavy", heavy = TRUE, packages = c("dplyr", "ggplot2")),
   list(script = "16_SCENIC_cisplatin_regulon_heatmap_FigS3B.R", group = "heavy", heavy = TRUE, packages = c("ComplexHeatmap")),
-  list(script = "17_cisplatin_IC50_UMAP_density_FigS3C.R", group = "optional", heavy = FALSE, packages = c("Seurat", "ggplot2")),
+  list(script = "17_cisplatin_IC50_UMAP_density_FigS3C.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "Nebulosa", "Matrix", "ggplot2")),
   list(script = "18_YBX1_regulon_density_UMAP_FigS3D.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "Nebulosa"))
 )
 
