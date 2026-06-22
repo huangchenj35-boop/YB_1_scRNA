@@ -255,20 +255,63 @@ run_log_df <- if (length(run_log) > 0) {
 
 utils::write.csv(run_log_df, file = file.path(output_dir, "codeocean_run_log.csv"), row.names = FALSE)
 
-if (copy_to_results && dir.exists("/results")) {
-  result_target <- file.path("/results", "output")
-  dir.create(result_target, showWarnings = FALSE, recursive = TRUE)
-  output_files <- list.files(output_dir, recursive = TRUE, full.names = TRUE)
-  for (f in output_files) {
-    rel <- sub(paste0("^", output_dir, "/?"), "", f)
-    target <- file.path(result_target, rel)
-    dir.create(dirname(target), showWarnings = FALSE, recursive = TRUE)
-    try(file.copy(f, target, overwrite = TRUE), silent = TRUE)
+copy_to_codeocean_results <- function() {
+  if (!copy_to_results || !dir.exists("/results")) return(invisible(character(0)))
+
+  copy_one <- function(from, to) {
+    dir.create(dirname(to), showWarnings = FALSE, recursive = TRUE)
+    ok <- tryCatch(
+      file.copy(from, to, overwrite = TRUE),
+      warning = function(w) FALSE,
+      error = function(e) FALSE
+    )
+    isTRUE(ok)
   }
+
+  copied <- character(0)
+
+  if (dir.exists(output_dir)) {
+    output_files <- list.files(output_dir, recursive = TRUE, full.names = TRUE, all.files = FALSE)
+    for (f in output_files) {
+      if (!file.info(f)$isdir) {
+        rel <- sub(paste0("^", output_dir, "/?"), "", f)
+        target <- file.path("/results", output_dir, rel)
+        if (copy_one(f, target)) copied <- c(copied, target)
+      }
+    }
+  }
+
+  root_files <- list.files(
+    ".",
+    pattern = "\\.(pdf|png|csv|tsv|txt|rds)$",
+    full.names = TRUE,
+    ignore.case = TRUE
+  )
+  root_files <- root_files[!grepl("^\\./output/", root_files)]
+  root_files <- root_files[!grepl("^\\./legacy_scripts/", root_files)]
+  root_files <- root_files[!grepl("^\\./GSE138709", root_files)]
+  root_files <- root_files[!grepl("^\\./data/", root_files)]
+
+  for (f in root_files) {
+    target <- file.path("/results", basename(f))
+    if (copy_one(f, target)) copied <- c(copied, target)
+  }
+
+  manifest <- data.frame(file = copied, stringsAsFactors = FALSE)
+  utils::write.csv(manifest, file = "/results/result_manifest.csv", row.names = FALSE)
+
+  message("Copied ", length(copied), " result files to /results.")
+  message("Manifest: /results/result_manifest.csv")
+  invisible(copied)
 }
+
+copy_to_codeocean_results()
 
 message("\nCode Ocean run finished.")
 message("Run log: ", file.path(output_dir, "codeocean_run_log.csv"))
+if (dir.exists("/results")) {
+  message("Code Ocean results directory: /results")
+}
 
 failed_core <- run_log_df$status == "failed" & run_log_df$group == "core"
 if (strict_core && any(failed_core)) {
