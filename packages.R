@@ -10,9 +10,9 @@
 ##   3. Rscript packages.R                   # check all listed packages
 ##   4. Rscript run_codeocean.R              # reviewer-safe workflow
 ##
-## Heavy steps such as inferCNV, CopyKAT, SCENIC, and Monocle3 are handled
-## as optional steps by run_codeocean.R if the corresponding packages or
-## input objects are not available.
+## Heavy steps such as inferCNV, CopyKAT, SCENIC, Monocle3, and
+## oncoPredict are handled as optional steps by run_codeocean.R if the
+## corresponding packages or input objects are not available.
 ## ============================================================
 
 Sys.setenv(LANGUAGE = "en")
@@ -48,7 +48,8 @@ heavy_or_manual_packages <- c(
   "monocle3",
   "infercnv",
   "copykat",
-  "SCENIC"
+  "SCENIC",
+  "oncoPredict"
 )
 
 all_packages <- unique(c(core_packages, bioconductor_packages, heavy_or_manual_packages))
