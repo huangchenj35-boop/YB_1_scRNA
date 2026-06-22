@@ -16,7 +16,7 @@ This command writes a log to:
 output/codeocean_run_log.csv
 ```
 
-The runner skips optional heavy steps when their packages or input files are not available. This avoids a capsule failure caused by packages such as inferCNV, CopyKAT, SCENIC, or Monocle3.
+The runner uses the ordered script entry points `01_*.R` to `18_*.R`. It skips optional heavy steps when their packages or input files are not available, which prevents failures caused by inferCNV, CopyKAT, SCENIC, or Monocle3.
 
 For a full run after all dependencies and data have been prepared:
 
@@ -96,6 +96,6 @@ Rscript run_codeocean.R
 ```
 
 4. Check `output/codeocean_run_log.csv` after running.
-5. Use the original scripts and `run_all.R` as the full reproducibility record.
+5. Use the ordered entry scripts and `run_all.R` as the full reproducibility record.
 
 The stable runner is intended to make the capsule inspectable and executable even when heavyweight optional steps are not rerun inside the review environment.
