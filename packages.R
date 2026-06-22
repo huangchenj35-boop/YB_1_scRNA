@@ -1,28 +1,27 @@
 ## ============================================================
-## Package checklist / optional installer for YB_1_scRNA
+## Package checklist for YB_1_scRNA
 ## ============================================================
-## This file separates CRAN, Bioconductor, and GitHub packages.
-## Nebulosa is not a CRAN package, so it should not be installed with
-## install.packages().
+## This file only checks package availability.
+## It does not install packages at runtime.
 ##
-## Default behavior:
-##   - check missing packages
-##   - do not install automatically
+## Code Ocean note:
+##   Runtime package installation can fail when CRAN, Bioconductor,
+##   GitHub packages, and Ubuntu binary packages are mixed in one session.
+##   For a reviewer-facing capsule, prepare the environment first and then
+##   run:
 ##
-## To install available CRAN packages:
-##   install_cran <- TRUE
+##     Rscript packages.R
+##     Rscript run_codeocean.R
 ##
-## To install Bioconductor packages:
-##   install_bioc <- TRUE
-##
-## GitHub packages usually depend on the R/Bioconductor version and are
-## listed separately for manual installation if needed.
+## Heavy steps such as inferCNV, CopyKAT, SCENIC, and Monocle3 are handled
+## as optional steps by run_codeocean.R if the corresponding packages or
+## input objects are not available.
 ## ============================================================
 
-install_cran <- FALSE
-install_bioc <- FALSE
+Sys.setenv(LANGUAGE = "en")
+options(stringsAsFactors = FALSE)
 
-cran_packages <- c(
+core_packages <- c(
   "Seurat",
   "dplyr",
   "tidyr",
@@ -39,9 +38,8 @@ cran_packages <- c(
   "cowplot"
 )
 
-bioc_packages <- c(
+bioconductor_packages <- c(
   "Nebulosa",
-  "infercnv",
   "AUCell",
   "RcisTarget",
   "GENIE3",
@@ -49,52 +47,61 @@ bioc_packages <- c(
   "ComplexHeatmap"
 )
 
-github_or_manual_packages <- c(
+heavy_or_manual_packages <- c(
   "monocle3",
+  "infercnv",
   "copykat",
   "SCENIC"
 )
 
-all_packages <- unique(c(cran_packages, bioc_packages, github_or_manual_packages))
-installed <- rownames(installed.packages())
-missing <- setdiff(all_packages, installed)
+all_packages <- unique(c(
+  core_packages,
+  bioconductor_packages,
+  heavy_or_manual_packages
+))
 
-if (length(missing) == 0) {
-  message("All listed packages are installed.")
+package_status <- data.frame(
+  package = all_packages,
+  group = c(
+    rep("core", length(core_packages)),
+    rep("bioconductor_or_optional", length(bioconductor_packages)),
+    rep("heavy_or_manual", length(heavy_or_manual_packages))
+  ),
+  installed = vapply(all_packages, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1)),
+  version = NA_character_,
+  stringsAsFactors = FALSE
+)
+
+for (pkg in package_status$package[package_status$installed]) {
+  package_status$version[package_status$package == pkg] <- as.character(utils::packageVersion(pkg))
+}
+
+print(package_status, row.names = FALSE)
+
+dir.create("output", showWarnings = FALSE, recursive = TRUE)
+utils::write.csv(
+  package_status,
+  file = file.path("output", "package_check.csv"),
+  row.names = FALSE
+)
+
+missing_core <- package_status$package[package_status$group == "core" & !package_status$installed]
+missing_optional <- package_status$package[package_status$group != "core" & !package_status$installed]
+
+if (length(missing_core) > 0) {
+  message("\nMissing core packages:")
+  message(paste(missing_core, collapse = ", "))
+  message("Install these in the Code Ocean environment before running the core workflow.")
+}
+
+if (length(missing_optional) > 0) {
+  message("\nMissing optional/heavy packages:")
+  message(paste(missing_optional, collapse = ", "))
+  message("run_codeocean.R will skip steps that require these packages unless they are installed.")
+}
+
+if (length(missing_core) == 0 && length(missing_optional) == 0) {
+  message("\nAll listed packages are installed.")
 } else {
-  message("Missing packages:")
-  message(paste(missing, collapse = ", "))
-}
-
-missing_cran <- setdiff(cran_packages, installed)
-missing_bioc <- setdiff(bioc_packages, installed)
-missing_manual <- setdiff(github_or_manual_packages, installed)
-
-if (length(missing_cran) > 0) {
-  message("\nMissing CRAN packages:")
-  message(paste(missing_cran, collapse = ", "))
-  if (isTRUE(install_cran)) {
-    install.packages(missing_cran, repos = "https://cloud.r-project.org")
-  } else {
-    message("Set install_cran <- TRUE to install these CRAN packages.")
-  }
-}
-
-if (length(missing_bioc) > 0) {
-  message("\nMissing Bioconductor packages:")
-  message(paste(missing_bioc, collapse = ", "))
-  if (isTRUE(install_bioc)) {
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-      install.packages("BiocManager", repos = "https://cloud.r-project.org")
-    }
-    BiocManager::install(missing_bioc, ask = FALSE, update = FALSE)
-  } else {
-    message("Set install_bioc <- TRUE to install these Bioconductor packages.")
-  }
-}
-
-if (length(missing_manual) > 0) {
-  message("\nPackages requiring GitHub/manual installation:")
-  message(paste(missing_manual, collapse = ", "))
-  message("Install these according to the package-specific instructions and the R version used in Code Ocean.")
+  message("\nPackage check finished with missing packages. See output/package_check.csv.")
 }
