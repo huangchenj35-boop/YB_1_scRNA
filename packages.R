@@ -1,17 +1,14 @@
 ## ============================================================
 ## Package checklist for YB_1_scRNA
 ## ============================================================
-## This file only checks package availability.
+## This file checks package availability only.
 ## It does not install packages at runtime.
 ##
-## Code Ocean note:
-##   Runtime package installation can fail when CRAN, Bioconductor,
-##   GitHub packages, and Ubuntu binary packages are mixed in one session.
-##   For a reviewer-facing capsule, prepare the environment first and then
-##   run:
-##
-##     Rscript packages.R
-##     Rscript run_codeocean.R
+## Recommended Code Ocean order:
+##   1. bash codeocean_system_deps.sh        # optional system libraries
+##   2. Rscript 00_install_core_packages.R   # install core CRAN packages
+##   3. Rscript packages.R                   # check all listed packages
+##   4. Rscript run_codeocean.R              # reviewer-safe workflow
 ##
 ## Heavy steps such as inferCNV, CopyKAT, SCENIC, and Monocle3 are handled
 ## as optional steps by run_codeocean.R if the corresponding packages or
@@ -54,11 +51,7 @@ heavy_or_manual_packages <- c(
   "SCENIC"
 )
 
-all_packages <- unique(c(
-  core_packages,
-  bioconductor_packages,
-  heavy_or_manual_packages
-))
+all_packages <- unique(c(core_packages, bioconductor_packages, heavy_or_manual_packages))
 
 package_status <- data.frame(
   package = all_packages,
@@ -91,7 +84,7 @@ missing_optional <- package_status$package[package_status$group != "core" & !pac
 if (length(missing_core) > 0) {
   message("\nMissing core packages:")
   message(paste(missing_core, collapse = ", "))
-  message("Install these in the Code Ocean environment before running the core workflow.")
+  message("Run Rscript 00_install_core_packages.R, then run this check again.")
 }
 
 if (length(missing_optional) > 0) {
