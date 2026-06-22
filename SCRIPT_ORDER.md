@@ -1,6 +1,6 @@
 # Ordered script names
 
-The recommended entry scripts are named according to the running order. These files live in the repository root and are used by `run_all.R` and `run_codeocean.R`.
+The recommended scripts are named according to the running order. These files live in the repository root and are used by `run_all.R` and `run_codeocean.R`.
 
 ```text
 00_install_core_packages.R
@@ -24,10 +24,12 @@ The recommended entry scripts are named according to the running order. These fi
 18_YBX1_regulon_density_UMAP_FigS3D.R
 ```
 
-The original implementation scripts have been backed up under:
+For Code Ocean compatibility, the ordered scripts in the repository root are standalone scripts. They do not require `source("legacy_scripts/...")`.
+
+The original long-name implementation scripts are also backed up under:
 
 ```text
 legacy_scripts/
 ```
 
-Each ordered script calls its corresponding implementation script in `legacy_scripts/` with `source()`.
+The backup folder is kept for traceability only. Routine Code Ocean runs should use the ordered scripts in the repository root.
