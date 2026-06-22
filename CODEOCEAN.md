@@ -32,19 +32,28 @@ Rscript run_all.R
 
 ## Data placement
 
-Raw count matrices and large intermediate RDS files are not stored in the GitHub repository.
+GSE138709 is provided by GEO as processed UMI count matrices in `GSE138709_RAW.tar`. The archive contains eight files ending with `_UMI.csv.gz`.
 
 Recommended Data paths:
 
 ```text
-/data/GSE138709/
+/data/GSE138709_RAW.tar
+/data/GSE138709_RAW/
 /data/scRNA1_preprocessed.rds
 /data/scRNA1_annotated.rds
 /data/scRNA1_with_SCENIC_AUC.rds
 /data/scRNA1_with_DrugPredictions.rds
 ```
 
-Equivalent paths under `/data/output/` are also supported.
+Equivalent paths under `/data/output/` are also supported for processed RDS objects.
+
+If `GSE138709_RAW.tar` is present, `run_codeocean.R` extracts it into:
+
+```text
+GSE138709_RAW/
+```
+
+The preprocessing script then reads the extracted UMI CSV files directly.
 
 If no input data are found, `run_codeocean.R` exits without error and writes:
 
@@ -79,7 +88,7 @@ The script installs system libraries only. R packages should be managed by the C
 ## Practical submission setup
 
 1. Import this GitHub repository into the Code section.
-2. Upload processed RDS objects to the Data section.
+2. Upload `GSE138709_RAW.tar` or processed RDS objects to the Data section.
 3. Set the capsule run command to:
 
 ```bash
