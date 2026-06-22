@@ -1,10 +1,26 @@
 ## ============================================================
-## Package checklist for YB_1_scRNA
+## Package checklist / optional installer for YB_1_scRNA
 ## ============================================================
-## This file checks whether the main R packages used by the scripts are
-## installed. It does not force installation of Bioconductor/GitHub-only
-## packages, because those packages often require version-specific setup.
+## This file separates CRAN, Bioconductor, and GitHub packages.
+## Nebulosa is not a CRAN package, so it should not be installed with
+## install.packages().
+##
+## Default behavior:
+##   - check missing packages
+##   - do not install automatically
+##
+## To install available CRAN packages:
+##   install_cran <- TRUE
+##
+## To install Bioconductor packages:
+##   install_bioc <- TRUE
+##
+## GitHub packages usually depend on the R/Bioconductor version and are
+## listed separately for manual installation if needed.
 ## ============================================================
+
+install_cran <- FALSE
+install_bioc <- FALSE
 
 cran_packages <- c(
   "Seurat",
@@ -18,17 +34,14 @@ cran_packages <- c(
   "scales",
   "colorspace",
   "aplot",
-  "Nebulosa",
   "pheatmap",
   "ggpubr",
   "cowplot"
 )
 
-special_packages <- c(
-  "monocle3",
+bioc_packages <- c(
+  "Nebulosa",
   "infercnv",
-  "copykat",
-  "SCENIC",
   "AUCell",
   "RcisTarget",
   "GENIE3",
@@ -36,7 +49,13 @@ special_packages <- c(
   "ComplexHeatmap"
 )
 
-all_packages <- unique(c(cran_packages, special_packages))
+github_or_manual_packages <- c(
+  "monocle3",
+  "copykat",
+  "SCENIC"
+)
+
+all_packages <- unique(c(cran_packages, bioc_packages, github_or_manual_packages))
 installed <- rownames(installed.packages())
 missing <- setdiff(all_packages, installed)
 
@@ -45,12 +64,37 @@ if (length(missing) == 0) {
 } else {
   message("Missing packages:")
   message(paste(missing, collapse = ", "))
-  message("\nInstall missing CRAN packages with install.packages().")
-  message("Install Bioconductor/GitHub packages according to their package documentation.")
 }
 
-## Optional CRAN installation helper. Uncomment if needed.
-# missing_cran <- setdiff(cran_packages, rownames(installed.packages()))
-# if (length(missing_cran) > 0) {
-#   install.packages(missing_cran)
-# }
+missing_cran <- setdiff(cran_packages, installed)
+missing_bioc <- setdiff(bioc_packages, installed)
+missing_manual <- setdiff(github_or_manual_packages, installed)
+
+if (length(missing_cran) > 0) {
+  message("\nMissing CRAN packages:")
+  message(paste(missing_cran, collapse = ", "))
+  if (isTRUE(install_cran)) {
+    install.packages(missing_cran, repos = "https://cloud.r-project.org")
+  } else {
+    message("Set install_cran <- TRUE to install these CRAN packages.")
+  }
+}
+
+if (length(missing_bioc) > 0) {
+  message("\nMissing Bioconductor packages:")
+  message(paste(missing_bioc, collapse = ", "))
+  if (isTRUE(install_bioc)) {
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+      install.packages("BiocManager", repos = "https://cloud.r-project.org")
+    }
+    BiocManager::install(missing_bioc, ask = FALSE, update = FALSE)
+  } else {
+    message("Set install_bioc <- TRUE to install these Bioconductor packages.")
+  }
+}
+
+if (length(missing_manual) > 0) {
+  message("\nPackages requiring GitHub/manual installation:")
+  message(paste(missing_manual, collapse = ", "))
+  message("Install these according to the package-specific instructions and the R version used in Code Ocean.")
+}
