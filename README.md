@@ -21,7 +21,7 @@ GSM4116585_ICC_24_Tumor2_UMI.csv.gz
 GSM4116586_ICC_25_Adjacent_UMI.csv.gz
 ```
 
-Raw count matrices and large intermediate RDS files are not stored in this repository. For Code Ocean, upload `GSE138709_RAW.tar` to the Data section as:
+For Code Ocean, upload `GSE138709_RAW.tar` to the Data section as:
 
 ```text
 /data/GSE138709_RAW.tar
@@ -30,83 +30,68 @@ Raw count matrices and large intermediate RDS files are not stored in this repos
 Alternatively, upload the extracted UMI matrices as:
 
 ```text
-/data/GSE138709_RAW/*_UMI.csv.gz
+/data/GSE138709_RAW/
 ```
 
-The preprocessing script can also read standard 10x Genomics `filtered_feature_bc_matrix` folders if they are provided under one of these paths:
-
-```text
-GSE138709/
-Rawcount/filtered_feature_bc_matrix/
-filtered_feature_bc_matrix/
-```
-
-If a processed Seurat object is already available, place it here:
+If a processed Seurat object is already available, the following paths are recognized:
 
 ```text
 output/scRNA1_preprocessed.rds
-```
-
-For Code Ocean, the following Data paths are also recognized by `run_codeocean.R`:
-
-```text
 /data/scRNA1_preprocessed.rds
 /data/output/scRNA1_preprocessed.rds
 /data/scRNA1_annotated.rds
 /data/output/scRNA1_annotated.rds
 ```
 
-Downstream scripts use these objects when present.
+## Ordered script entry points
 
-## Script order
-
-Run the scripts in numerical order:
+Scripts are now named according to the running order. These ordered files are the recommended entry points for local use and Code Ocean.
 
 ```text
-00_data_preprocessing_for_FigS1A.R
-01_Fig1A_FigS1B_cell_annotation.R
-02_Fig1B_Fig1D_FigS1C_sample_origin_YBX1_composition.R
-03_Fig1C_Fig1F_Fig3Btop_Fig3Ctop_YBX1_feature_UMAP.R
-04_Fig1E_FigS2_inferCNV_CopyKAT.R
-05_Fig1G_Fig3Bbottom_Fig3Cbottom_Fig3D_Fig3E_boxdensity.R
-06_Fig1H_Fig1I_Fig1J_Fig1K_Monocle3_trajectory.R
-07_data_drug_sensitivity_prediction_for_Fig3D_Fig3E_FigS3C.R
-08_data_SCENIC_regulon_inference_for_Fig3_FigS3.R
-09_data_SCENIC_AUC_integration_for_Fig3_FigS3.R
-10_Fig3A_SCENIC_CopyKAT_regulon_heatmap.R
-11_Fig3Ctop_GSVA_YBX1_targets_ssGSEA.R
-12_Fig3F_FigS3E_to_FigS3H_ABC_transporter.R
-13_FigS1D_FigS1E_FigS1F_cholangiocyte_subclustering.R
-14_FigS3A_SCENIC_regulon_volcano.R
-15_FigS3B_SCENIC_cisplatin_regulon_heatmap.R
-16_FigS3C_cisplatin_IC50_UMAP_density.R
-17_FigS3D_YBX1_regulon_density_UMAP.R
+01_preprocessing_FigS1A.R
+02_cell_annotation_Fig1A_FigS1B.R
+03_sample_origin_YBX1_composition_Fig1B_Fig1D_FigS1C.R
+04_YBX1_feature_UMAP_Fig1C_Fig1F_Fig3B_Fig3C.R
+05_CNV_inferCNV_CopyKAT_Fig1E_FigS2.R
+06_YBX1_box_density_drug_response_Fig1G_Fig3B_to_Fig3E.R
+07_Monocle3_trajectory_Fig1H_to_Fig1K.R
+08_drug_sensitivity_prediction_Fig3D_Fig3E_FigS3C.R
+09_SCENIC_regulon_inference_Fig3_FigS3.R
+10_SCENIC_AUC_integration_Fig3_FigS3.R
+11_SCENIC_CopyKAT_regulon_heatmap_Fig3A.R
+12_GSVA_YBX1_targets_ssGSEA_Fig3C.R
+13_ABC_transporter_Fig3F_FigS3E_to_FigS3H.R
+14_cholangiocyte_subclustering_FigS1D_to_FigS1F.R
+15_SCENIC_regulon_volcano_FigS3A.R
+16_SCENIC_cisplatin_regulon_heatmap_FigS3B.R
+17_cisplatin_IC50_UMAP_density_FigS3C.R
+18_YBX1_regulon_density_UMAP_FigS3D.R
 ```
 
-Some scripts generate figures directly. Others prepare intermediate Seurat, SCENIC, or drug-response objects used by later scripts.
+The original implementation scripts are retained in the repository for traceability. Each ordered entry script calls the corresponding original script with `source()`.
 
 ## Script map
 
-| Script | Main purpose | Related panels |
-|---|---|---|
-| `00_data_preprocessing_for_FigS1A.R` | Read GEO UMI CSV matrices or 10x folders; Seurat preprocessing, QC, integration, clustering, UMAP/t-SNE | Fig. S1A |
-| `01_Fig1A_FigS1B_cell_annotation.R` | Cell-type annotation and marker validation | Fig. 1A; Fig. S1B |
-| `02_Fig1B_Fig1D_FigS1C_sample_origin_YBX1_composition.R` | Tumor/adjacent distribution, YBX1 expression comparison, cell-type composition | Fig. 1B; Fig. 1D; Fig. S1C |
-| `03_Fig1C_Fig1F_Fig3Btop_Fig3Ctop_YBX1_feature_UMAP.R` | YBX1 expression and YBX1-related score projection | Fig. 1C; Fig. 1F; Fig. 3B top; Fig. 3C top |
-| `04_Fig1E_FigS2_inferCNV_CopyKAT.R` | CNV-based malignant-cell inference | Fig. 1E; Fig. S2 |
-| `05_Fig1G_Fig3Bbottom_Fig3Cbottom_Fig3D_Fig3E_boxdensity.R` | YBX1 expression, regulon activity, target score, and drug-response comparison | Fig. 1G; Fig. 3B bottom; Fig. 3C bottom; Fig. 3D; Fig. 3E |
-| `06_Fig1H_Fig1I_Fig1J_Fig1K_Monocle3_trajectory.R` | Monocle3 trajectory analysis | Fig. 1H-K |
-| `07_data_drug_sensitivity_prediction_for_Fig3D_Fig3E_FigS3C.R` | Predicted cisplatin/gemcitabine sensitivity data | Fig. 3D; Fig. 3E; Fig. S3C |
-| `08_data_SCENIC_regulon_inference_for_Fig3_FigS3.R` | SCENIC regulon inference | Fig. 3; Fig. S3 |
-| `09_data_SCENIC_AUC_integration_for_Fig3_FigS3.R` | Integration of regulon AUC scores into Seurat metadata | Fig. 3; Fig. S3 |
-| `10_Fig3A_SCENIC_CopyKAT_regulon_heatmap.R` | Regulon heatmap by malignant-cell status | Fig. 3A |
-| `11_Fig3Ctop_GSVA_YBX1_targets_ssGSEA.R` | GSVA/ssGSEA YBX1 target-gene score | Fig. 3C top |
-| `12_Fig3F_FigS3E_to_FigS3H_ABC_transporter.R` | ABC transporter expression analysis | Fig. 3F; Fig. S3E-H |
-| `13_FigS1D_FigS1E_FigS1F_cholangiocyte_subclustering.R` | Cholangiocyte-related subclustering | Fig. S1D-F |
-| `14_FigS3A_SCENIC_regulon_volcano.R` | Regulon volcano plot | Fig. S3A |
-| `15_FigS3B_SCENIC_cisplatin_regulon_heatmap.R` | Cisplatin-related regulon heatmap | Fig. S3B |
-| `16_FigS3C_cisplatin_IC50_UMAP_density.R` | Predicted cisplatin lnIC50 density UMAP | Fig. S3C |
-| `17_FigS3D_YBX1_regulon_density_UMAP.R` | YBX1 regulon AUC density UMAP | Fig. S3D |
+| Order | Ordered script | Main purpose | Related panels |
+|---|---|---|---|
+| 01 | `01_preprocessing_FigS1A.R` | Read GEO UMI CSV matrices or 10x folders; Seurat preprocessing, QC, integration, clustering, UMAP/t-SNE | Fig. S1A |
+| 02 | `02_cell_annotation_Fig1A_FigS1B.R` | Cell-type annotation and marker validation | Fig. 1A; Fig. S1B |
+| 03 | `03_sample_origin_YBX1_composition_Fig1B_Fig1D_FigS1C.R` | Tumor/adjacent distribution, YBX1 expression comparison, cell-type composition | Fig. 1B; Fig. 1D; Fig. S1C |
+| 04 | `04_YBX1_feature_UMAP_Fig1C_Fig1F_Fig3B_Fig3C.R` | YBX1 expression and YBX1-related score projection | Fig. 1C; Fig. 1F; Fig. 3B top; Fig. 3C top |
+| 05 | `05_CNV_inferCNV_CopyKAT_Fig1E_FigS2.R` | CNV-based malignant-cell inference | Fig. 1E; Fig. S2 |
+| 06 | `06_YBX1_box_density_drug_response_Fig1G_Fig3B_to_Fig3E.R` | YBX1 expression, regulon activity, target score, and drug-response comparison | Fig. 1G; Fig. 3B bottom; Fig. 3C bottom; Fig. 3D; Fig. 3E |
+| 07 | `07_Monocle3_trajectory_Fig1H_to_Fig1K.R` | Monocle3 trajectory analysis | Fig. 1H-K |
+| 08 | `08_drug_sensitivity_prediction_Fig3D_Fig3E_FigS3C.R` | Predicted cisplatin/gemcitabine sensitivity data | Fig. 3D; Fig. 3E; Fig. S3C |
+| 09 | `09_SCENIC_regulon_inference_Fig3_FigS3.R` | SCENIC regulon inference | Fig. 3; Fig. S3 |
+| 10 | `10_SCENIC_AUC_integration_Fig3_FigS3.R` | Integration of regulon AUC scores into Seurat metadata | Fig. 3; Fig. S3 |
+| 11 | `11_SCENIC_CopyKAT_regulon_heatmap_Fig3A.R` | Regulon heatmap by malignant-cell status | Fig. 3A |
+| 12 | `12_GSVA_YBX1_targets_ssGSEA_Fig3C.R` | GSVA/ssGSEA YBX1 target-gene score | Fig. 3C top |
+| 13 | `13_ABC_transporter_Fig3F_FigS3E_to_FigS3H.R` | ABC transporter expression analysis | Fig. 3F; Fig. S3E-H |
+| 14 | `14_cholangiocyte_subclustering_FigS1D_to_FigS1F.R` | Cholangiocyte-related subclustering | Fig. S1D-F |
+| 15 | `15_SCENIC_regulon_volcano_FigS3A.R` | Regulon volcano plot | Fig. S3A |
+| 16 | `16_SCENIC_cisplatin_regulon_heatmap_FigS3B.R` | Cisplatin-related regulon heatmap | Fig. S3B |
+| 17 | `17_cisplatin_IC50_UMAP_density_FigS3C.R` | Predicted cisplatin lnIC50 density UMAP | Fig. S3C |
+| 18 | `18_YBX1_regulon_density_UMAP_FigS3D.R` | YBX1 regulon AUC density UMAP | Fig. S3D |
 
 ## Preprocessing settings
 
@@ -181,7 +166,7 @@ For a strict full workflow in a fully prepared local environment, run:
 Rscript run_all.R
 ```
 
-The individual scripts can also be run in R with `source()` in numerical order.
+The individual ordered scripts can also be run in R with `source()` in numerical order.
 
 ## Output
 
