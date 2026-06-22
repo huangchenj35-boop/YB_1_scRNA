@@ -43,9 +43,36 @@ output/scRNA1_preprocessed.rds
 /data/output/scRNA1_annotated.rds
 ```
 
+## Installation and run order
+
+For Code Ocean review mode, use the following order in a clean capsule:
+
+```bash
+bash codeocean_system_deps.sh
+Rscript 00_install_core_packages.R
+Rscript packages.R
+Rscript run_codeocean.R
+```
+
+If system libraries are already available, skip the first line:
+
+```bash
+Rscript 00_install_core_packages.R
+Rscript packages.R
+Rscript run_codeocean.R
+```
+
+The main Code Ocean run command can remain:
+
+```bash
+Rscript run_codeocean.R
+```
+
+The installation details are documented in `INSTALL.md`.
+
 ## Ordered script entry points
 
-Scripts are now named according to the running order. These ordered files are the recommended entry points for local use and Code Ocean.
+Scripts are named according to the running order. These ordered files are the recommended entry points for local use and Code Ocean.
 
 ```text
 01_preprocessing_FigS1A.R
@@ -68,7 +95,7 @@ Scripts are now named according to the running order. These ordered files are th
 18_YBX1_regulon_density_UMAP_FigS3D.R
 ```
 
-The original implementation scripts are retained in the repository for traceability. Each ordered entry script calls the corresponding original script with `source()`.
+The implementation scripts are backed up under `legacy_scripts/`. Each ordered entry script calls the corresponding implementation script with `source()`.
 
 ## Script map
 
@@ -115,7 +142,7 @@ output/FigS1A_cluster_UMAP.png
 
 ## R packages
 
-Main packages used in the scripts:
+Core packages installed by `00_install_core_packages.R`:
 
 ```text
 Seurat
@@ -129,6 +156,14 @@ Matrix
 scales
 colorspace
 aplot
+pheatmap
+ggpubr
+cowplot
+```
+
+Heavy optional packages are checked by `packages.R` but not installed by default:
+
+```text
 Nebulosa
 monocle3
 infercnv
@@ -139,34 +174,9 @@ RcisTarget
 GENIE3
 GSVA
 ComplexHeatmap
-pheatmap
-ggpubr
-cowplot
 ```
 
 SCENIC-related scripts also require the corresponding motif-ranking database files. These database files are not included and should be prepared following the SCENIC workflow.
-
-## Running the analysis
-
-For Code Ocean review mode, use the stable runner:
-
-```bash
-Rscript run_codeocean.R
-```
-
-This runner detects `/data/GSE138709_RAW.tar`, extracts the UMI CSV matrices, runs available core scripts, skips heavy optional steps when dependencies are unavailable, and writes:
-
-```text
-output/codeocean_run_log.csv
-```
-
-For a strict full workflow in a fully prepared local environment, run:
-
-```bash
-Rscript run_all.R
-```
-
-The individual ordered scripts can also be run in R with `source()` in numerical order.
 
 ## Output
 
