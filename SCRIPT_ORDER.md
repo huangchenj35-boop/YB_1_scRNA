@@ -1,8 +1,9 @@
 # Ordered script names
 
-The recommended entry scripts are named according to the running order:
+The recommended entry scripts are named according to the running order. These files live in the repository root and are used by `run_all.R` and `run_codeocean.R`.
 
 ```text
+00_install_core_packages.R
 01_preprocessing_FigS1A.R
 02_cell_annotation_Fig1A_FigS1B.R
 03_sample_origin_YBX1_composition_Fig1B_Fig1D_FigS1C.R
@@ -23,4 +24,10 @@ The recommended entry scripts are named according to the running order:
 18_YBX1_regulon_density_UMAP_FigS3D.R
 ```
 
-The original implementation scripts are retained for traceability. Each ordered script calls the corresponding original script with `source()`.
+The original implementation scripts have been backed up under:
+
+```text
+legacy_scripts/
+```
+
+Each ordered script calls its corresponding implementation script in `legacy_scripts/` with `source()`.
