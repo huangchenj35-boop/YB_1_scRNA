@@ -48,14 +48,19 @@ safe_link_or_copy <- function(from, to) {
   isTRUE(copied)
 }
 
+has_umi_csv <- function(path) {
+  dir.exists(path) && length(list.files(path, pattern = "_UMI\\.csv(\\.gz)?$", recursive = TRUE)) > 0
+}
+
+has_10x_matrix <- function(path) {
+  if (!dir.exists(path)) return(FALSE)
+  dirs <- list.dirs(path, recursive = TRUE, full.names = TRUE)
+  any(file.exists(file.path(dirs, "matrix.mtx")) | file.exists(file.path(dirs, "matrix.mtx.gz")))
+}
+
 extract_tar_if_needed <- function(tar_file, exdir = "GSE138709_RAW") {
   if (!file.exists(tar_file)) return(FALSE)
-  existing_csv <- if (dir.exists(exdir)) {
-    list.files(exdir, pattern = "_UMI\\.csv(\\.gz)?$", recursive = TRUE, full.names = TRUE)
-  } else {
-    character(0)
-  }
-  if (length(existing_csv) > 0) return(TRUE)
+  if (has_umi_csv(exdir)) return(TRUE)
 
   dir.create(exdir, showWarnings = FALSE, recursive = TRUE)
   message("  Extracting ", tar_file, " to ", exdir, "/")
@@ -136,19 +141,11 @@ prepare_codeocean_inputs <- function() {
 
 prepare_codeocean_inputs()
 
-umi_csv_found <- any(c(
-  dir.exists("GSE138709_RAW") && length(list.files("GSE138709_RAW", pattern = "_UMI\\.csv(\\.gz)?$", recursive = TRUE)) > 0,
-  dir.exists("GSE138709") && length(list.files("GSE138709", pattern = "_UMI\\.csv(\\.gz)?$", recursive = TRUE)) > 0
-))
+umi_csv_found <- any(vapply(c("GSE138709_RAW", "GSE138709", "Rawcount", "data", "/data"), has_umi_csv, FUN.VALUE = logical(1)))
+tenx_found <- any(vapply(c("GSE138709", "Rawcount/filtered_feature_bc_matrix", "filtered_feature_bc_matrix"), has_10x_matrix, FUN.VALUE = logical(1)))
+rds_found <- any(file.exists(file.path(output_dir, c("scRNA1_preprocessed.rds", "scRNA1_annotated.rds"))))
 
-input_found <- any(c(
-  umi_csv_found,
-  dir.exists("GSE138709"),
-  dir.exists("Rawcount/filtered_feature_bc_matrix"),
-  dir.exists("filtered_feature_bc_matrix"),
-  file.exists(file.path(output_dir, "scRNA1_preprocessed.rds")),
-  file.exists(file.path(output_dir, "scRNA1_annotated.rds"))
-))
+input_found <- any(c(umi_csv_found, tenx_found, rds_found))
 
 if (!input_found) {
   msg <- c(
