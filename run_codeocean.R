@@ -1,19 +1,8 @@
 ## ============================================================
 ## Code Ocean stable runner for YB_1_scRNA
 ## ============================================================
-## This runner is designed for a reviewer-facing Code Ocean capsule.
-## It avoids hard failure when optional heavy dependencies or external
-## intermediate objects are not available.
-##
-## Default mode:
-##   - check and link common /data inputs
-##   - extract GSE138709_RAW.tar when present
-##   - run scripts with available dependencies
-##   - skip heavy optional steps unless RUN_HEAVY_STEPS=true
-##   - write a run log to output/codeocean_run_log.csv
-##
-## Full mode:
-##   RUN_HEAVY_STEPS=true STRICT_CORE=true Rscript run_codeocean.R
+## Scripts are named according to their running order.
+## Default mode skips heavy optional steps unless RUN_HEAVY_STEPS=true.
 ## ============================================================
 
 Sys.setenv(LANGUAGE = "en")
@@ -21,16 +10,14 @@ options(stringsAsFactors = FALSE)
 set.seed(1234)
 
 as_bool <- function(x, default = FALSE) {
-  if (length(x) == 0 || is.na(x) || x == "") {
-    return(default)
-  }
+  if (length(x) == 0 || is.na(x) || x == "") return(default)
   tolower(x) %in% c("1", "true", "t", "yes", "y")
 }
 
-run_heavy_steps <- as_bool(Sys.getenv("RUN_HEAVY_STEPS"), default = FALSE)
-strict_core <- as_bool(Sys.getenv("STRICT_CORE"), default = FALSE)
-copy_to_results <- as_bool(Sys.getenv("COPY_RESULTS_TO_RESULTS_DIR"), default = TRUE)
-allow_no_input <- as_bool(Sys.getenv("ALLOW_NO_INPUT"), default = TRUE)
+run_heavy_steps <- as_bool(Sys.getenv("RUN_HEAVY_STEPS"), FALSE)
+strict_core <- as_bool(Sys.getenv("STRICT_CORE"), FALSE)
+copy_to_results <- as_bool(Sys.getenv("COPY_RESULTS_TO_RESULTS_DIR"), TRUE)
+allow_no_input <- as_bool(Sys.getenv("ALLOW_NO_INPUT"), TRUE)
 
 message("Code Ocean runner settings:")
 message("  RUN_HEAVY_STEPS = ", run_heavy_steps)
@@ -42,13 +29,8 @@ output_dir <- "output"
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
 safe_link_or_copy <- function(from, to) {
-  if (!file.exists(from) && !dir.exists(from)) {
-    return(FALSE)
-  }
-  if (file.exists(to) || dir.exists(to)) {
-    return(TRUE)
-  }
-
+  if (!file.exists(from) && !dir.exists(from)) return(FALSE)
+  if (file.exists(to) || dir.exists(to)) return(TRUE)
   dir.create(dirname(to), showWarnings = FALSE, recursive = TRUE)
 
   linked <- tryCatch(
@@ -56,55 +38,38 @@ safe_link_or_copy <- function(from, to) {
     warning = function(w) FALSE,
     error = function(e) FALSE
   )
-
-  if (isTRUE(linked)) {
-    return(TRUE)
-  }
+  if (isTRUE(linked)) return(TRUE)
 
   copied <- tryCatch(
     file.copy(from = from, to = to, recursive = TRUE),
     warning = function(w) FALSE,
     error = function(e) FALSE
   )
-
   isTRUE(copied)
 }
 
 extract_tar_if_needed <- function(tar_file, exdir = "GSE138709_RAW") {
-  if (!file.exists(tar_file)) {
-    return(FALSE)
-  }
-
+  if (!file.exists(tar_file)) return(FALSE)
   existing_csv <- if (dir.exists(exdir)) {
     list.files(exdir, pattern = "_UMI\\.csv(\\.gz)?$", recursive = TRUE, full.names = TRUE)
   } else {
     character(0)
   }
-
-  if (length(existing_csv) > 0) {
-    return(TRUE)
-  }
+  if (length(existing_csv) > 0) return(TRUE)
 
   dir.create(exdir, showWarnings = FALSE, recursive = TRUE)
   message("  Extracting ", tar_file, " to ", exdir, "/")
-
-  ok <- tryCatch(
-    {
-      utils::untar(tar_file, exdir = exdir)
-      TRUE
-    },
-    error = function(e) {
-      message("  Failed to extract ", tar_file, ": ", conditionMessage(e))
-      FALSE
-    }
-  )
-
-  ok
+  tryCatch({
+    utils::untar(tar_file, exdir = exdir)
+    TRUE
+  }, error = function(e) {
+    message("  Failed to extract ", tar_file, ": ", conditionMessage(e))
+    FALSE
+  })
 }
 
 prepare_codeocean_inputs <- function() {
   message("\nPreparing Code Ocean input paths...")
-
   data_roots <- c("/data", "../data", "data")
 
   for (root in data_roots) {
@@ -123,13 +88,12 @@ prepare_codeocean_inputs <- function() {
     file.path("data", "GSE138709_RAW.tar")
   )
   tar_candidates <- tar_candidates[file.exists(tar_candidates)]
-
   if (length(tar_candidates) > 0) {
     if (!file.exists("GSE138709_RAW.tar")) {
       ok <- safe_link_or_copy(tar_candidates[[1]], "GSE138709_RAW.tar")
       message("  Linked/copied GSE138709_RAW.tar from ", tar_candidates[[1]], ": ", ok)
     }
-    extract_tar_if_needed("GSE138709_RAW.tar", exdir = "GSE138709_RAW")
+    extract_tar_if_needed("GSE138709_RAW.tar", "GSE138709_RAW")
   }
 
   for (root in data_roots) {
@@ -153,10 +117,7 @@ prepare_codeocean_inputs <- function() {
 
   for (rds in rds_files) {
     target <- file.path(output_dir, rds)
-    if (file.exists(target)) {
-      next
-    }
-
+    if (file.exists(target)) next
     candidates <- c(
       file.path("/data", rds),
       file.path("/data", "output", rds),
@@ -165,7 +126,6 @@ prepare_codeocean_inputs <- function() {
       file.path("data", rds),
       file.path("data", "output", rds)
     )
-
     candidates <- candidates[file.exists(candidates)]
     if (length(candidates) > 0) {
       ok <- safe_link_or_copy(candidates[[1]], target)
@@ -193,9 +153,9 @@ input_found <- any(c(
 if (!input_found) {
   msg <- c(
     "No input data were found.",
-    "Place GSE138709_RAW.tar or extracted *_UMI.csv.gz files in the Code Ocean Data section, for example:",
+    "Place GSE138709_RAW.tar or extracted UMI CSV files in the Code Ocean Data section, for example:",
     "  /data/GSE138709_RAW.tar",
-    "  /data/GSE138709_RAW/GSM4116579_ICC_18_Adjacent_UMI.csv.gz",
+    "  /data/GSE138709_RAW/",
     "Alternatively provide processed RDS files such as:",
     "  /data/scRNA1_preprocessed.rds",
     "  /data/output/scRNA1_preprocessed.rds",
@@ -204,49 +164,29 @@ if (!input_found) {
   )
   writeLines(msg, con = file.path(output_dir, "CODEOCEAN_INPUT_REQUIRED.txt"))
   message(paste(msg, collapse = "\n"))
-  if (!allow_no_input) {
-    stop("No input data were found and ALLOW_NO_INPUT=false.")
-  }
+  if (!allow_no_input) stop("No input data were found and ALLOW_NO_INPUT=false.")
   quit(save = "no", status = 0)
 }
 
 steps <- list(
-  list(script = "00_data_preprocessing_for_FigS1A.R", group = "core", heavy = FALSE,
-       packages = c("Seurat", "dplyr", "ggplot2", "patchwork", "Matrix")),
-  list(script = "01_Fig1A_FigS1B_cell_annotation.R", group = "core", heavy = FALSE,
-       packages = c("Seurat", "dplyr", "ggplot2")),
-  list(script = "02_Fig1B_Fig1D_FigS1C_sample_origin_YBX1_composition.R", group = "core", heavy = FALSE,
-       packages = c("Seurat", "dplyr", "tidyr", "ggplot2", "scales", "colorspace", "aplot")),
-  list(script = "03_Fig1C_Fig1F_Fig3Btop_Fig3Ctop_YBX1_feature_UMAP.R", group = "core", heavy = FALSE,
-       packages = c("Seurat", "dplyr", "ggplot2")),
-  list(script = "04_Fig1E_FigS2_inferCNV_CopyKAT.R", group = "heavy", heavy = TRUE,
-       packages = c("Seurat", "infercnv", "copykat")),
-  list(script = "05_Fig1G_Fig3Bbottom_Fig3Cbottom_Fig3D_Fig3E_boxdensity.R", group = "core_or_intermediate", heavy = FALSE,
-       packages = c("Seurat", "dplyr", "ggplot2", "ggpubr")),
-  list(script = "06_Fig1H_Fig1I_Fig1J_Fig1K_Monocle3_trajectory.R", group = "heavy", heavy = TRUE,
-       packages = c("Seurat", "monocle3")),
-  list(script = "07_data_drug_sensitivity_prediction_for_Fig3D_Fig3E_FigS3C.R", group = "optional", heavy = FALSE,
-       packages = c("Seurat", "dplyr")),
-  list(script = "08_data_SCENIC_regulon_inference_for_Fig3_FigS3.R", group = "heavy", heavy = TRUE,
-       packages = c("SCENIC", "AUCell", "RcisTarget", "GENIE3")),
-  list(script = "09_data_SCENIC_AUC_integration_for_Fig3_FigS3.R", group = "heavy", heavy = TRUE,
-       packages = c("Seurat", "AUCell")),
-  list(script = "10_Fig3A_SCENIC_CopyKAT_regulon_heatmap.R", group = "heavy", heavy = TRUE,
-       packages = c("ComplexHeatmap", "dplyr")),
-  list(script = "11_Fig3Ctop_GSVA_YBX1_targets_ssGSEA.R", group = "optional", heavy = FALSE,
-       packages = c("Seurat", "GSVA")),
-  list(script = "12_Fig3F_FigS3E_to_FigS3H_ABC_transporter.R", group = "core_or_intermediate", heavy = FALSE,
-       packages = c("Seurat", "dplyr", "ggplot2")),
-  list(script = "13_FigS1D_FigS1E_FigS1F_cholangiocyte_subclustering.R", group = "core_or_intermediate", heavy = FALSE,
-       packages = c("Seurat", "dplyr", "ggplot2")),
-  list(script = "14_FigS3A_SCENIC_regulon_volcano.R", group = "heavy", heavy = TRUE,
-       packages = c("dplyr", "ggplot2")),
-  list(script = "15_FigS3B_SCENIC_cisplatin_regulon_heatmap.R", group = "heavy", heavy = TRUE,
-       packages = c("ComplexHeatmap")),
-  list(script = "16_FigS3C_cisplatin_IC50_UMAP_density.R", group = "optional", heavy = FALSE,
-       packages = c("Seurat", "ggplot2")),
-  list(script = "17_FigS3D_YBX1_regulon_density_UMAP.R", group = "heavy", heavy = TRUE,
-       packages = c("Seurat", "Nebulosa"))
+  list(script = "01_preprocessing_FigS1A.R", group = "core", heavy = FALSE, packages = c("Seurat", "dplyr", "ggplot2", "patchwork", "Matrix")),
+  list(script = "02_cell_annotation_Fig1A_FigS1B.R", group = "core", heavy = FALSE, packages = c("Seurat", "dplyr", "ggplot2")),
+  list(script = "03_sample_origin_YBX1_composition_Fig1B_Fig1D_FigS1C.R", group = "core", heavy = FALSE, packages = c("Seurat", "dplyr", "tidyr", "ggplot2", "scales", "colorspace", "aplot")),
+  list(script = "04_YBX1_feature_UMAP_Fig1C_Fig1F_Fig3B_Fig3C.R", group = "core", heavy = FALSE, packages = c("Seurat", "dplyr", "ggplot2")),
+  list(script = "05_CNV_inferCNV_CopyKAT_Fig1E_FigS2.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "infercnv", "copykat")),
+  list(script = "06_YBX1_box_density_drug_response_Fig1G_Fig3B_to_Fig3E.R", group = "core_or_intermediate", heavy = FALSE, packages = c("Seurat", "dplyr", "ggplot2", "ggpubr")),
+  list(script = "07_Monocle3_trajectory_Fig1H_to_Fig1K.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "monocle3")),
+  list(script = "08_drug_sensitivity_prediction_Fig3D_Fig3E_FigS3C.R", group = "optional", heavy = FALSE, packages = c("Seurat", "dplyr")),
+  list(script = "09_SCENIC_regulon_inference_Fig3_FigS3.R", group = "heavy", heavy = TRUE, packages = c("SCENIC", "AUCell", "RcisTarget", "GENIE3")),
+  list(script = "10_SCENIC_AUC_integration_Fig3_FigS3.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "AUCell")),
+  list(script = "11_SCENIC_CopyKAT_regulon_heatmap_Fig3A.R", group = "heavy", heavy = TRUE, packages = c("ComplexHeatmap", "dplyr")),
+  list(script = "12_GSVA_YBX1_targets_ssGSEA_Fig3C.R", group = "optional", heavy = FALSE, packages = c("Seurat", "GSVA")),
+  list(script = "13_ABC_transporter_Fig3F_FigS3E_to_FigS3H.R", group = "core_or_intermediate", heavy = FALSE, packages = c("Seurat", "dplyr", "ggplot2")),
+  list(script = "14_cholangiocyte_subclustering_FigS1D_to_FigS1F.R", group = "core_or_intermediate", heavy = FALSE, packages = c("Seurat", "dplyr", "ggplot2")),
+  list(script = "15_SCENIC_regulon_volcano_FigS3A.R", group = "heavy", heavy = TRUE, packages = c("dplyr", "ggplot2")),
+  list(script = "16_SCENIC_cisplatin_regulon_heatmap_FigS3B.R", group = "heavy", heavy = TRUE, packages = c("ComplexHeatmap")),
+  list(script = "17_cisplatin_IC50_UMAP_density_FigS3C.R", group = "optional", heavy = FALSE, packages = c("Seurat", "ggplot2")),
+  list(script = "18_YBX1_regulon_density_UMAP_FigS3D.R", group = "heavy", heavy = TRUE, packages = c("Seurat", "Nebulosa"))
 )
 
 run_log <- list()
@@ -293,49 +233,29 @@ run_step <- function(step) {
   message("Running: ", script)
   message("============================================================")
 
-  ok <- tryCatch(
-    {
-      source(script, local = .GlobalEnv)
-      TRUE
-    },
-    error = function(e) {
-      reason <- conditionMessage(e)
-      message("ERROR in ", script, ": ", reason)
-      append_log(script, step$group, "failed", reason, start_time, Sys.time())
-      FALSE
-    }
-  )
+  ok <- tryCatch({
+    source(script, local = .GlobalEnv)
+    TRUE
+  }, error = function(e) {
+    reason <- conditionMessage(e)
+    message("ERROR in ", script, ": ", reason)
+    append_log(script, step$group, "failed", reason, start_time, Sys.time())
+    FALSE
+  })
 
-  if (isTRUE(ok)) {
-    append_log(script, step$group, "completed", "", start_time, Sys.time())
-  }
-
+  if (isTRUE(ok)) append_log(script, step$group, "completed", "", start_time, Sys.time())
   invisible(ok)
 }
 
-for (step in steps) {
-  run_step(step)
-}
+for (step in steps) run_step(step)
 
 run_log_df <- if (length(run_log) > 0) {
   do.call(rbind, run_log)
 } else {
-  data.frame(
-    script = character(),
-    group = character(),
-    status = character(),
-    reason = character(),
-    start_time = character(),
-    end_time = character(),
-    stringsAsFactors = FALSE
-  )
+  data.frame(script = character(), group = character(), status = character(), reason = character(), start_time = character(), end_time = character(), stringsAsFactors = FALSE)
 }
 
-utils::write.csv(
-  run_log_df,
-  file = file.path(output_dir, "codeocean_run_log.csv"),
-  row.names = FALSE
-)
+utils::write.csv(run_log_df, file = file.path(output_dir, "codeocean_run_log.csv"), row.names = FALSE)
 
 if (copy_to_results && dir.exists("/results")) {
   result_target <- file.path("/results", "output")
