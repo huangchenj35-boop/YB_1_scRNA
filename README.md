@@ -169,6 +169,7 @@ monocle3
 infercnv
 copykat
 SCENIC
+oncoPredict
 AUCell
 RcisTarget
 GENIE3
