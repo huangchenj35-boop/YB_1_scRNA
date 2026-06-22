@@ -72,7 +72,7 @@ The installation details are documented in `INSTALL.md`.
 
 ## Ordered script entry points
 
-Scripts are named according to the running order. These ordered files are the recommended entry points for local use and Code Ocean.
+Scripts are named according to the running order. These ordered files are standalone scripts in the repository root and are the recommended entry points for local use and Code Ocean.
 
 ```text
 01_preprocessing_FigS1A.R
@@ -95,7 +95,7 @@ Scripts are named according to the running order. These ordered files are the re
 18_YBX1_regulon_density_UMAP_FigS3D.R
 ```
 
-The implementation scripts are backed up under `legacy_scripts/`. Each ordered entry script calls the corresponding implementation script with `source()`.
+The original long-name implementation scripts are also backed up under `legacy_scripts/` for traceability. Routine Code Ocean runs should use the ordered scripts in the repository root.
 
 ## Script map
 
