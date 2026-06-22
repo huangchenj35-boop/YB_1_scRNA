@@ -65,25 +65,32 @@ This makes the missing-data reason explicit instead of producing a long dependen
 
 ## Package strategy
 
-Use `packages.R` as a package availability check:
+The standard installation and run order is documented in `INSTALL.md`.
+
+In a clean Code Ocean capsule, use:
 
 ```bash
+bash codeocean_system_deps.sh
+Rscript 00_install_core_packages.R
 Rscript packages.R
+Rscript run_codeocean.R
 ```
 
-It writes:
+If system libraries are already available, skip the first line:
+
+```bash
+Rscript 00_install_core_packages.R
+Rscript packages.R
+Rscript run_codeocean.R
+```
+
+`00_install_core_packages.R` installs only core CRAN packages used by the default reviewer-safe workflow. `packages.R` checks both core and optional package availability and writes:
 
 ```text
 output/package_check.csv
 ```
 
-System libraries can be installed with:
-
-```bash
-bash codeocean_system_deps.sh
-```
-
-The script installs system libraries only. R packages should be managed by the Code Ocean environment where possible.
+Do not install Ubuntu `r-cran-*` or `r-bioc-*` packages in this capsule unless the base image is specifically designed for that.
 
 ## Practical submission setup
 
