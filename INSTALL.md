@@ -105,6 +105,7 @@ monocle3
 infercnv
 copykat
 SCENIC
+oncoPredict
 AUCell
 RcisTarget
 GENIE3
@@ -113,7 +114,7 @@ ComplexHeatmap
 Nebulosa
 ```
 
-These packages are used by trajectory, CNV, SCENIC, GSVA, and regulon-density steps. In the default reviewer-safe workflow, scripts requiring missing heavy packages are skipped and recorded in `output/codeocean_run_log.csv`.
+These packages are used by trajectory, CNV, drug-sensitivity, SCENIC, GSVA, and regulon-density steps. In the default reviewer-safe workflow, scripts requiring missing heavy packages or heavy intermediate objects are skipped and recorded in `output/codeocean_run_log.csv`.
 
 To run all heavy steps after installing all required packages and preparing the corresponding input objects, use:
 
