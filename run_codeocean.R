@@ -7,6 +7,7 @@
 ##
 ## Default mode:
 ##   - check and link common /data inputs
+##   - extract GSE138709_RAW.tar when present
 ##   - run scripts with available dependencies
 ##   - skip heavy optional steps unless RUN_HEAVY_STEPS=true
 ##   - write a run log to output/codeocean_run_log.csv
@@ -69,10 +70,67 @@ safe_link_or_copy <- function(from, to) {
   isTRUE(copied)
 }
 
+extract_tar_if_needed <- function(tar_file, exdir = "GSE138709_RAW") {
+  if (!file.exists(tar_file)) {
+    return(FALSE)
+  }
+
+  existing_csv <- if (dir.exists(exdir)) {
+    list.files(exdir, pattern = "_UMI\\.csv(\\.gz)?$", recursive = TRUE, full.names = TRUE)
+  } else {
+    character(0)
+  }
+
+  if (length(existing_csv) > 0) {
+    return(TRUE)
+  }
+
+  dir.create(exdir, showWarnings = FALSE, recursive = TRUE)
+  message("  Extracting ", tar_file, " to ", exdir, "/")
+
+  ok <- tryCatch(
+    {
+      utils::untar(tar_file, exdir = exdir)
+      TRUE
+    },
+    error = function(e) {
+      message("  Failed to extract ", tar_file, ": ", conditionMessage(e))
+      FALSE
+    }
+  )
+
+  ok
+}
+
 prepare_codeocean_inputs <- function() {
   message("\nPreparing Code Ocean input paths...")
 
   data_roots <- c("/data", "../data", "data")
+
+  for (root in data_roots) {
+    raw_dir <- file.path(root, "GSE138709_RAW")
+    if (dir.exists(raw_dir) && !dir.exists("GSE138709_RAW")) {
+      ok <- safe_link_or_copy(raw_dir, "GSE138709_RAW")
+      message("  Linked/copied GSE138709_RAW from ", raw_dir, ": ", ok)
+      break
+    }
+  }
+
+  tar_candidates <- c(
+    "GSE138709_RAW.tar",
+    file.path("/data", "GSE138709_RAW.tar"),
+    file.path("../data", "GSE138709_RAW.tar"),
+    file.path("data", "GSE138709_RAW.tar")
+  )
+  tar_candidates <- tar_candidates[file.exists(tar_candidates)]
+
+  if (length(tar_candidates) > 0) {
+    if (!file.exists("GSE138709_RAW.tar")) {
+      ok <- safe_link_or_copy(tar_candidates[[1]], "GSE138709_RAW.tar")
+      message("  Linked/copied GSE138709_RAW.tar from ", tar_candidates[[1]], ": ", ok)
+    }
+    extract_tar_if_needed("GSE138709_RAW.tar", exdir = "GSE138709_RAW")
+  }
 
   for (root in data_roots) {
     gse_path <- file.path(root, "GSE138709")
@@ -118,7 +176,13 @@ prepare_codeocean_inputs <- function() {
 
 prepare_codeocean_inputs()
 
+umi_csv_found <- any(c(
+  dir.exists("GSE138709_RAW") && length(list.files("GSE138709_RAW", pattern = "_UMI\\.csv(\\.gz)?$", recursive = TRUE)) > 0,
+  dir.exists("GSE138709") && length(list.files("GSE138709", pattern = "_UMI\\.csv(\\.gz)?$", recursive = TRUE)) > 0
+))
+
 input_found <- any(c(
+  umi_csv_found,
   dir.exists("GSE138709"),
   dir.exists("Rawcount/filtered_feature_bc_matrix"),
   dir.exists("filtered_feature_bc_matrix"),
@@ -129,7 +193,10 @@ input_found <- any(c(
 if (!input_found) {
   msg <- c(
     "No input data were found.",
-    "Place raw GSE138709 10x folders under /data/GSE138709 or provide processed RDS files such as:",
+    "Place GSE138709_RAW.tar or extracted *_UMI.csv.gz files in the Code Ocean Data section, for example:",
+    "  /data/GSE138709_RAW.tar",
+    "  /data/GSE138709_RAW/GSM4116579_ICC_18_Adjacent_UMI.csv.gz",
+    "Alternatively provide processed RDS files such as:",
     "  /data/scRNA1_preprocessed.rds",
     "  /data/output/scRNA1_preprocessed.rds",
     "  /data/scRNA1_annotated.rds",
@@ -145,7 +212,7 @@ if (!input_found) {
 
 steps <- list(
   list(script = "00_data_preprocessing_for_FigS1A.R", group = "core", heavy = FALSE,
-       packages = c("Seurat", "dplyr", "ggplot2", "patchwork")),
+       packages = c("Seurat", "dplyr", "ggplot2", "patchwork", "Matrix")),
   list(script = "01_Fig1A_FigS1B_cell_annotation.R", group = "core", heavy = FALSE,
        packages = c("Seurat", "dplyr", "ggplot2")),
   list(script = "02_Fig1B_Fig1D_FigS1C_sample_origin_YBX1_composition.R", group = "core", heavy = FALSE,
